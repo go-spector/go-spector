@@ -1,0 +1,6 @@
+boundary "main" as Main << (P,LightBlue) >>
+control "go-spector" as GoSpector << (P,LightBlue) >>
+control "validators" as Validators << (P,LightBlue) >>
+collections "validators/*" as ValidatorsCollection << (P,LightBlue) >>
+control "generators" as Generators << (P,LightBlue) >>
+collections "generators/*" as GeneratorsCollection << (P,LightBlue) >>
