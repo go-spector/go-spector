@@ -1,0 +1,21 @@
+site_name: Go Spector
+repo_url: https://github.com/go-spector/go-spector
+repo_name: go-spector/go-spector
+theme:
+  name: material
+  icon:
+    logo: fontawesome/solid/project-diagram
+    repo: fontawesome/brands/github
+  palette:
+    scheme: slate
+    primary: blue
+    accent: cyan
+  features:
+  - navigation.instant
+  - navigation.tabs
+markdown_extensions:
+- meta
+- admonition
+- pymdownx.tabbed
+- pymdownx.superfences
+- pymdownx.snippets
