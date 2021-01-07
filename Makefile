@@ -29,6 +29,10 @@ OCI_DOCUMENTATION = https://github.com/$(REPO)
 
 .DEFAULT_GOAL := build
 
+.PHONY: lint
+lint:
+	golangci-lint run
+
 .PHONY: test
 test:
 	go test -race -v ./...
