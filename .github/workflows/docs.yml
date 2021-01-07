@@ -1,0 +1,43 @@
+name: Documentation
+
+on:
+  push:
+    branches:
+    - master
+    paths:
+    - .github/workflows/docs.yml
+    - mkdocs.yml
+    - Pipfile
+    - Pipfile.lock
+    - 'docs/**/*.md'
+  pull_request:
+    branches:
+    - master
+    paths:
+    - .github/workflows/docs.yml
+    - mkdocs.yml
+    - Pipfile
+    - Pipfile.lock
+    - 'docs/**/*.md'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: setup python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: install pipenv
+      run: pip install pipenv
+    - name: install packages
+      run: pipenv install
+    - name: build
+      run: pipenv run mkdocs build
+    - name: deploy github pages
+      if: github.event_name != 'pull_request'
+      run: pipenv run mkdocs gh-deploy --force

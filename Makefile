@@ -31,4 +31,3 @@ $(DIAGRAMS_DIR)/%.png: $(DIAGRAMS_DIR)/%.puml
 	@$(PLANTUML) -tpng $<
 
 Pipfile.lock: Pipfile
-	$(PYTHON) -m pipenv sync
