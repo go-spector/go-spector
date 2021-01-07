@@ -1,0 +1,52 @@
+name: Generate Diagrams
+on:
+  push:
+    paths:
+    - 'docs/diagrams/**.puml'
+    - 'docs/diagrams/**.iuml'
+    branches:
+    - master
+  pull_request:
+    paths:
+    - 'docs/diagrams/**.puml'
+    - 'docs/diagrams/**.iuml'
+    branches:
+    - master
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    env:
+      UML_FILES_APTH: docs/diagrams
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+    - name: get files
+      id: getfile
+      run: |
+        echo "::set-output name=files::$(find ${{ env.UML_FILES_PATH }} -type f -name "*.puml" -or -name "*.iuml" | xargs)"
+    - name: generate SVG
+      uses: cloudbees/plantuml-github-action@master
+      with:
+        args: -v -tsvg ${{ steps.getfile.outputs.files }}
+    - name: generate PNG Diagrams
+      uses: cloudbees/plantuml-github-action@master
+      with:
+        args: -v -tpng ${{ steps.getfile.outputs.files }}
+    - name: commit changes
+      uses: zwaldowski/git-commit-action@v1
+      if: github.event_name == 'pull_request'
+      continue-on-error: true
+      with:
+        author_name: "GitHub Action"
+        author_email: "action@github.com"
+        commit_message: "docs: generate SVG and PNG images for PlantUML diagrams"
+    - name: push changes
+      uses: ad-m/github-push-action@master
+      if: success() and github.event_name == 'pull_request'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.head_ref }}

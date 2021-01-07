@@ -1,0 +1,15 @@
+@startuml
+autoactivate on
+
+!include components-v0.iuml
+
+Main o-->> GoSpector : import
+GoSpector o-->> Validators : import
+GoSpector o-->> ValidatorsCollection : import
+ValidatorsCollection o--> Validators : import
+GoSpector o-->> Generators : import
+GoSpector o-->> GeneratorsCollection : import
+GeneratorsCollection o-->> Generators : import
+
+title Go Spector CLI import v0
+@enduml

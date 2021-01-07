@@ -1,0 +1,17 @@
+@startuml
+autoactivate on
+
+!include components-v0.iuml
+
+ValidatorsCollection -> ValidatorsCollection : init
+ValidatorsCollection -> Validators : Register
+return
+return
+
+GeneratorsCollection -> GeneratorsCollection : init
+GeneratorsCollection -> Generators : Register
+return
+return
+
+title Go Spector CLI init v0
+@enduml
