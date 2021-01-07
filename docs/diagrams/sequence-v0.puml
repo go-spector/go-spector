@@ -1,0 +1,65 @@
+@startuml sequence
+autoactivate on
+
+' %false(): replace external sections with refs
+' %true(): fully import all subgraphs bodies
+!$compact = %true()
+
+' components
+!include components-v0.iuml
+
+' import
+!if ($compact == %true())
+ref over Main, GeneratorsCollection: import-v0
+!else
+== import ==
+!include import-v0.puml
+!endif
+
+' init
+!if ($compact == %true())
+ref over Main, GeneratorsCollection: init-v0
+!else
+== init ==
+!include init-v0.puml
+!endif
+
+' main
+== main ==
+?-> Main : args
+
+ref over Main : read template file
+
+Main -> GoSpector : Initialize
+return instance
+
+Main -> Main : search specification files
+return
+
+loop specification files
+  Main -> Main : read specification file
+  return
+
+  Main -> GoSpector : Transform
+  GoSpector -> GoSpector : identify specification API
+  return
+  GoSpector -> Validators : Validate
+    loop validators
+      Validators -> ValidatorsCollection : Validate
+      return
+    end
+  return
+
+  GoSpector -> Generators : Generate
+  Generators -> GeneratorsCollection : Generate
+  return
+  return
+  return
+  ref over Main : write source files
+end
+
+
+?<-- Main -- : error
+
+title Go Spector CLI v0
+@enduml
