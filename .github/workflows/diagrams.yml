@@ -46,7 +46,7 @@ jobs:
         commit_message: "docs: generate SVG and PNG images for PlantUML diagrams"
     - name: push changes
       uses: ad-m/github-push-action@master
-      if: success() and github.event_name == 'pull_request'
+      if: success() && github.event_name == 'pull_request'
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         branch: ${{ github.head_ref }}
