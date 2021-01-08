@@ -1,0 +1,334 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+    - master
+    tags:
+    - '*'
+    paths:
+    - .github/workflows/integration.yml
+    - .golangci.yaml
+    - .goreleaser.yaml
+    - sonar-project.properties
+    - Dockerfile
+    - .dockerignore
+    - go.mod
+    - go.sum
+    - '**.go'
+  pull_request:
+    branches:
+    - master
+    paths:
+    - .github/workflows/integration.yml
+    - .golangci.yaml
+    - .goreleaser.yaml
+    - sonar-project.properties
+    - Dockerfile
+    - .dockerignore
+    - go.mod
+    - go.sum
+    - '**.go'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - name: setup golang
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+    - name: set golang environment variables
+      run: |
+        echo "GOCACHE=$(go env GOCACHE)" >> $GITHUB_ENV
+        echo "GOMODCACHE=$(go env GOMODCACHE)" >> $GITHUB_ENV
+    - name: cache modules
+      uses: actions/cache@v2
+      with:
+        path: ${GOMODCACHE}
+        key: ${{ runner.os }}-modules-${{ hashFiles('go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-modules-${{ hashFiles('go.sum') }}
+          ${{ runner.os }}-modules-
+    - name: download dependencies
+      run: go mod download
+    - name: cache vendor
+      uses: actions/cache@v2
+      with:
+        path: vendor
+        key: ${{ runner.os }}-vendor-${{ hashFiles('go.mod', 'go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-vendor-${{ hashFiles('go.mod', 'go.sum') }}
+          ${{ runner.os }}-vendor-
+    - name: vendor dependencies
+      run: go mod vendor
+    - name: cache build
+      uses: actions/cache@v2
+      with:
+        path: ${GOCACHE}
+        key: ${{ runner.os }}-build-${{ hashFiles('**/*.go') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ hashFiles('**/*.go') }}
+          ${{ runner.os }}-build-
+    - name: build
+      run: go build -mod=vendor ./...
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: setup golang
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+    - name: set golang environment variables
+      run: |
+        echo "GOCACHE=$(go env GOCACHE)" >> $GITHUB_ENV
+        echo "GOMODCACHE=$(go env GOMODCACHE)" >> $GITHUB_ENV
+    - name: cache modules
+      uses: actions/cache@v2
+      with:
+        path: ${GOMODCACHE}
+        key: ${{ runner.os }}-modules-${{ hashFiles('go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-modules-${{ hashFiles('go.sum') }}
+          ${{ runner.os }}-modules-
+    - name: download dependencies
+      run: go mod download
+    - name: cache vendor
+      uses: actions/cache@v2
+      with:
+        path: vendor
+        key: ${{ runner.os }}-vendor-${{ hashFiles('go.mod', 'go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-vendor-${{ hashFiles('go.mod', 'go.sum') }}
+          ${{ runner.os }}-vendor-
+    - name: vendor dependencies
+      run: go mod vendor
+    - name: cache lint
+      uses: actions/cache@v2
+      with:
+        path: ${HOME}/.cache/golangci-lint
+        key: ${{ runner.os }}-lint-${{ hashFiles('.golangci.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-lint-${{ hashFiles('.golangci.yaml') }}
+          ${{ runner.os }}-lint-
+    - name: lint
+      run: >
+        mkdir -p ${GOMODCACHE};
+        mkdir -p ${GOCACHE};
+        mkdir -p ${HOME}/.cache/golangci-lint;
+        docker run --rm -a STDOUT -a STDERR
+        --mount type=bind,source=${GOMODCACHE},target=/root/go/pkg/mod,consistency=cached
+        --mount type=bind,source=${GOCACHE},target=/root/.cache/go-build,consistency=cached
+        --mount type=bind,source=${HOME}/.cache/golangci-lint,target=/.cache/golangci-lint,consistency=cached
+        --mount type=bind,source=${GITHUB_WORKSPACE},target=/usr/src,consistency=cached
+        -w /usr/src
+        golangci/golangci-lint:v1.32-alpine golangci-lint run -v --out-format checkstyle > golangci-lint-report.xml
+    - name: upload lint report
+      uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: lint-report
+        path: ${{github.workspace}}/golangci-lint-report.xml
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: setup golang
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+    - name: set golang environment variables
+      run: |
+        echo "GOCACHE=$(go env GOCACHE)" >> $GITHUB_ENV
+        echo "GOMODCACHE=$(go env GOMODCACHE)" >> $GITHUB_ENV
+    - name: cache modules
+      uses: actions/cache@v2
+      with:
+        path: ${GOMODCACHE}
+        key: ${{ runner.os }}-modules-${{ hashFiles('go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-modules-${{ hashFiles('go.sum') }}
+          ${{ runner.os }}-modules-
+    - name: download dependencies
+      run: go mod download
+    - name: cache vendor
+      uses: actions/cache@v2
+      with:
+        path: vendor
+        key: ${{ runner.os }}-vendor-${{ hashFiles('go.mod', 'go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-vendor-${{ hashFiles('go.mod', 'go.sum') }}
+          ${{ runner.os }}-vendor-
+    - name: vendor dependencies
+      run: go mod vendor
+    - name: cache test
+      uses: actions/cache@v2
+      with:
+        path: ${GOCACHE}
+        key: ${{ runner.os }}-test-${{ hashFiles('**/*.go') }}
+        restore-keys: |
+          ${{ runner.os }}-test-${{ hashFiles('**/*.go') }}
+          ${{ runner.os }}-test-
+    - name: test
+      run: |
+        go test -race -cover -coverprofile=coverage.out -json -v ./... > test-report.json
+    - name: upload coverage report
+      uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: coverage-report
+        path: ${{github.workspace}}/coverage.out
+    - name: upload test report
+      uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: test-report
+        path: ${{github.workspace}}/test-report.json
+  report:
+    runs-on: ubuntu-latest
+    needs: [lint,test]
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - name: cache sonar scanner
+      uses: actions/cache@v2
+      with:
+        path: $HOME/sonar-scanner-cache
+        key: ${{ runner.os }}-sonar-scanner-cache-${{ hashFiles('**/sonar-project.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-sonar-scanner-cache-${{ hashFiles('**/sonar-project.properties') }}
+          ${{ runner.os }}-sonar-scanner-cache-
+    - name: download lint report
+      uses: actions/download-artifact@v2
+      with:
+        name: lint-report
+    - name: download test report
+      uses: actions/download-artifact@v2
+      with:
+        name: test-report
+    - name: download coverage report
+      uses: actions/download-artifact@v2
+      with:
+        name: coverage-report
+    - name: run sonar scanner
+      run: >
+        mkdir ${HOME}/sonar-scanner-cache;
+        docker run --rm -a STDOUT -a STDERR
+        --user $(id -u):$(id -g)
+        --mount type=bind,source=${HOME}/sonar-scanner-cache,target=/opt/sonar-scanner/.sonar/cache,consistency=cached
+        --mount type=bind,source=${GITHUB_WORKSPACE},target=/usr/src,consistency=cached
+        sonarsource/sonar-scanner-cli
+        -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+  release:
+    runs-on: ubuntu-latest
+    needs: [build,lint,test]
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: setup golang
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+    - name: set golang environment variables
+      run: |
+        echo "GOCACHE=$(go env GOCACHE)" >> $GITHUB_ENV
+        echo "GOMODCACHE=$(go env GOMODCACHE)" >> $GITHUB_ENV
+    - name: cache modules
+      uses: actions/cache@v2
+      with:
+        path: ${GOMODCACHE}
+        key: ${{ runner.os }}-modules-${{ hashFiles('go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-modules-${{ hashFiles('go.sum') }}
+          ${{ runner.os }}-modules-
+    - name: cache vendor
+      uses: actions/cache@v2
+      with:
+        path: vendor
+        key: ${{ runner.os }}-vendor-${{ hashFiles('go.mod', 'go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-vendor-${{ hashFiles('go.mod', 'go.sum') }}
+          ${{ runner.os }}-vendor-
+    - name: cache build
+      uses: actions/cache@v2
+      with:
+        path: ${GOCACHE}
+        key: ${{ runner.os }}-build-${{ hashFiles('**/*.go') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ hashFiles('**/*.go') }}
+          ${{ runner.os }}-build-
+    - name: run goreleaser
+      uses: goreleaser/goreleaser-action@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        version: latest
+        args: release --rm-dist
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  docker:
+    runs-on: ubuntu-latest
+    needs: [build,lint,test]
+    if: github.event_name != 'pull_request'
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - name: generate docker meta
+      id: docker_meta
+      uses: crazy-max/ghaction-docker-meta@v1
+      with:
+        images: ${{ github.repository }}
+        tag-sha: true
+        github-token: ${{ github.token }}
+    - name: set up QEMU
+      uses: docker/setup-qemu-action@v1
+    - name: set up docker buildx
+      uses: docker/setup-buildx-action@v1
+    - name: cache buildx
+      uses: actions/cache@v2
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile', '.dockerignore') }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile', '.dockerignore') }}
+          ${{ runner.os }}-buildx-
+    - name: login to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    - name: build and publish image
+      uses: docker/build-push-action@v2
+      env:
+        DOCKER_BUILDKIT: 1
+        BUILDKIT_INLINE_CACHE: 1
+      with:
+        cache-to: type=inline
+        cache-from: |
+          ${{ steps.docker_meta.outputs.tags }}
+          ${{ github.repository }}:master
+          ${{ github.repository }}:latest
+        push: true
+        platforms: linux/amd64,linux/arm/v7,linux/arm64
+        tags: ${{ steps.docker_meta.outputs.tags }}
+        labels: |
+          ${{ steps.docker_meta.outputs.labels }}
+          org.opencontainers.image.authors=${{ secrets.OCI_AUTHORS }}
+          org.opencontainers.image.documentation=https://github.com/${{ github.repository }}
+          org.opencontainers.image.vendor=${{ secrets.OCI_AUTHORS }}
+    - name: update DockerHub description
+      uses: meeDamian/sync-readme@v1.0.6
+      with:
+        pass: ${{ secrets.DOCKER_PASSWORD }}
+        description: true
