@@ -24,7 +24,7 @@ OCI_VERSION = $(GIT_BRANCH)
 OCI_CREATED = $(DATE)
 OCI_REVISION = $(GIT_REV)
 OCI_LICENSES = MIT
-OCI_AUTHORS = Damiano Petrungaro, William Artero <william@artero.dev>
+OCI_AUTHORS ?= Damiano Petrungaro, William Artero <william@artero.dev>
 OCI_DOCUMENTATION = https://github.com/$(REPO)
 
 .DEFAULT_GOAL := build
