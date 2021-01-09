@@ -136,6 +136,15 @@ docs-build: docs-sync
 docs-serve: docs-sync
 	$(PYTHON) -m pipenv run mkdocs serve
 
+# release targets
+.PHONY: release
+release:
+	env -u GITLAB_TOKEN goreleaser release --rm-dist
+
+.PHONY: test-release
+test-release:
+	env -u GITLAB_TOKEN goreleaser release --rm-dist --snapshot
+
 # rules
 %.html: %.out
 	go tool cover -html=$< -o $@

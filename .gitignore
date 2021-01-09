@@ -1,5 +1,6 @@
 go-spector
 !go-spector/
+dist/
 
 # Binaries for programs and plugins
 *.exe
