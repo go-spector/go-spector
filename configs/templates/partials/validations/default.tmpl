@@ -1,0 +1,34 @@
+{{- define "partials/validations/default" -}}
+{{- $varName := (printf "%s.%s" (receiverName .Receiver) (.Attr.Name | camelCase )) }}
+
+        // apply default value
+    {{- if isInt .Attr.Type }}
+        if {{ $varName }} == 0 {
+            {{ $varName }} {{ .Rule.Values.default }}
+        }
+    {{- end }}
+
+    {{- if isString .Attr.Type }}
+        if {{ $varName }} == "" {
+            {{ $varName }} {{ .Rule.Values.default }}
+        }
+    {{- end }}
+
+    {{- if isBool .Attr.Type }}
+        if {{ receiverName .Receiver }}.{{ .Attr.Name }} == false {
+            {{ $varName }} {{ .Rule.Values.default }}
+        }
+    {{- end }}
+
+    {{- if isSlice .Attr.Type }}
+        if len({{ receiverName .Receiver }}.{{ .Attr.Name }}) == 0 {
+            {{ $varName }} {{ .Rule.Values.default }}
+        }
+    {{- end }}
+
+    {{- if isMap .Attr.Type }}
+        if len({{ receiverName .Receiver }}.{{ .Attr.Name }}) == 0 {
+            {{ $varName }} {{ .Rule.Values.default }}
+        }
+    {{- end }}
+{{- end -}}

@@ -1,0 +1,15 @@
+{{ define "partials/validation"}}
+    {{- range $attr := .Attrs -}}
+        {{- range $rule := $attr.Rules }}
+            {{- if eq $rule.Name "default" -}}
+                {{- template "partials/validations/default" mapOf "Receiver" $.Receiver "Attr" $attr "Rule" $rule }}
+
+            {{- end -}}
+
+            {{- if eq $rule.Name "enum" -}}
+                {{- template "partials/validations/enum" mapOf "Receiver" $.Receiver "Attr" $attr "Rule" $rule }}
+
+            {{- end -}}
+        {{- end }}
+    {{- end }}
+{{ end}}

@@ -1,0 +1,13 @@
+{{- define "partials/validations/enum" }}
+        // apply enum validation
+        var is{{ .Attr.Name | camelCase }}Found bool
+        for _, v := range {{.Rule.Values.enum}} {
+            if v == {{ receiverName .Receiver }}.{{ .Attr.Name | camelCase }} {
+                is{{ .Attr.Name | camelCase }}Found = true
+                break
+            }
+        }
+        if !is{{ .Attr.Name | camelCase }}Found {
+            // TODO add error handling here
+        }
+{{- end -}}

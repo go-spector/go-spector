@@ -1,0 +1,17 @@
+{{ generatedFileNote }}
+
+package schema
+
+{{- $camelCaseName := .Name | camelCase }}
+
+var {{ $camelCaseName }}Key = &struct{ i int }{}
+
+type {{ $camelCaseName }} struct {
+{{- range $attr := .Attributes }}
+    {{ $attr.Name | camelCase }} {{$attr.Type }} {{ mapAliases $attr.Aliases $attr.Optional }}
+{{- end }}
+}
+
+func ({{ receiverName .Name }} *{{ $camelCaseName }}) Validate() error {
+{{- template "partials/validation" mapOf "Receiver" .Name "Attrs" .Attributes -}}
+}

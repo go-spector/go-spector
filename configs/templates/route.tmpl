@@ -1,0 +1,106 @@
+{{ generatedFileNote }}
+{{- $camelCaseRouteName := .Name | camelCase }}
+
+package router
+
+import (
+    "context"
+    "encoding/json"
+    "encoding/xml"
+    "errors"
+    "package_name_will_go_here/schema"
+    "net/http"
+    "strings"
+)
+
+{{ if .Params }}
+var {{ $camelCaseRouteName }}HandlerParamsKey = &struct{ i int }{}
+
+type {{ $camelCaseRouteName }}HandlerParams struct {
+{{- range $param := .Params }}
+    {{ $param.Name | camelCase }} string
+{{- end }}
+}
+{{- end }}
+
+type {{ $camelCaseRouteName }}Handler http.HandlerFunc
+
+func New{{ $camelCaseRouteName }}Handler(fn http.HandlerFunc) {{ $camelCaseRouteName }}Handler {
+    return {{ $camelCaseRouteName }}Handler(fn)
+}
+
+func (h {{ $camelCaseRouteName }}Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    var err error
+    {{ if .Model }}
+    err = h.Decode{{ .Model.Name | camelCase }}(r)
+    if v := (&schema.ValidationError{}); errors.As(err, &v) {
+        w.WriteHeader(http.StatusUnprocessableEntity)
+        if err := json.NewEncoder(w).Encode(v); err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+        }
+        return
+    }
+    if err != nil {
+        w.WriteHeader(http.StatusBadRequest)
+        return
+    }
+    {{- end }}
+
+    {{ if .Params }}
+    err = h.DecodeParams(r)
+    if v := (&schema.ValidationError{}); errors.As(err, &v) {
+        w.WriteHeader(http.StatusUnprocessableEntity)
+        if err := json.NewEncoder(w).Encode(v); err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+        }
+        return
+    }
+    if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+    {{- end }}
+
+    h(w, r)
+}
+
+{{- if .Model }}
+
+func (h {{ $camelCaseRouteName }}Handler) Decode{{ .Model.Name | camelCase }}(r *http.Request) error {
+    sc := &schema.{{ .Model.Name | camelCase }}{}
+
+    if err := json.NewDecoder(r.Body).Decode(sc); err != nil {
+        return err
+    }
+
+    if err := sc.Validate(); err != nil {
+        return err
+    }
+
+    r = r.WithContext(context.WithValue(r.Context(), schema.{{ .Model.Name | camelCase }}Key, sc))
+    return nil
+}
+{{- end }}
+
+{{- if .Params }}
+
+func (h {{ $camelCaseRouteName }}Handler) DecodeParams(r *http.Request) error {
+    err := &schema.ValidationError{}
+
+    p := {{ $camelCaseRouteName }}HandlerParams{
+{{- range $param := .Params }}
+    {{- if eq $param.Location "header" }}
+        {{ $param.Name | camelCase }}: chi.URLParam(r, "{{ $param.Name }}")
+    {{- end }}
+{{- end }}
+    }
+
+    if errors.Unwrap(err) != nil {
+        return err
+    }
+
+    r = r.WithContext(context.WithValue(r.Context(), {{ $camelCaseRouteName }}HandlerParamsKey, p))
+
+    return nil
+}
+{{ end }}

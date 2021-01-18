@@ -1,0 +1,20 @@
+{{ generatedFileNote }}
+
+package router
+
+import (
+    "github.com/go-chi/chi"
+    "net/http"
+)
+
+func New(
+{{- range $route := .Routes }}
+    {{ $route.Name }}Fn  http.HandlerFunc,
+{{- end }}
+) func(r chi.Router) {
+    return func(r chi.Router) {
+{{- range $route := .Routes }}
+        r.Method(http.Method{{ $route.Method | camelCase }}, "{{ $route.URI }}", New{{ $route.Name | camelCase }}Handler({{ $route.Name }}Fn))
+    }
+{{- end }}
+}
